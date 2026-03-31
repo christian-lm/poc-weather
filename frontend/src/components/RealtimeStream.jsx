@@ -1,8 +1,8 @@
 /**
  * @module components/RealtimeStream
  * @description Table of the most recent individual metric readings. Each row
- * shows timestamp, originating sensor, metric type, raw value, measurement
- * precision, and a quality status badge. Entries come from the
+ * shows timestamp, originating sensor, metric type, raw value, and a quality
+ * status badge. Entries come from the
  * /metrics/stream endpoint.
  *
  * @param {Object} props
@@ -29,16 +29,6 @@ function truncateLabel(name, max = 28) {
   return `${name.substring(0, max)}…`;
 }
 
-function getPrecision(metric) {
-  switch (metric) {
-    case 'temperature': return '±0.02';
-    case 'humidity': return '±0.11';
-    case 'wind_speed': return '±0.4';
-    case 'pressure': return '±0.01';
-    default: return null;
-  }
-}
-
 export default function RealtimeStream({ entries = [] }) {
   return (
     <div className="stream-card card">
@@ -56,21 +46,19 @@ export default function RealtimeStream({ entries = [] }) {
             <th>Source</th>
             <th>Metric Type</th>
             <th>Reading</th>
-            <th title="Sensor measurement tolerance — how much the reading may differ from the true value">Precision</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
           {entries.length === 0 && (
             <tr>
-              <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem' }}>
+              <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-light)', padding: '2rem' }}>
                 No recent metrics available
               </td>
             </tr>
           )}
           {entries.map((entry, i) => {
             const unit = METRIC_UNITS[entry.metricType] || '';
-            const precision = getPrecision(entry.metricType);
             const status = entry.value != null ? 'valid' : 'timeout';
             return (
               <tr key={i}>
@@ -92,12 +80,6 @@ export default function RealtimeStream({ entries = [] }) {
                 </td>
                 <td style={{ fontWeight: 600 }}>
                   {entry.value != null ? `${entry.value.toFixed(2)} ${unit}` : '--'}
-                </td>
-                <td style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}
-                    title={precision
-                      ? `Measurement tolerance: the reading is accurate within ${precision}`
-                      : 'Precision not defined for this metric type'}>
-                  {precision || '—'}
                 </td>
                 <td>
                   <StatusBadge status={status} />
