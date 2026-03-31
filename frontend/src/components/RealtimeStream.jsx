@@ -23,12 +23,10 @@ function formatTimestamp(ts) {
   });
 }
 
-function getStationCode(name) {
-  if (!name) return '--';
-  const parts = name.split(/\s+/);
-  const code = parts[0]?.substring(0, 2).toUpperCase() || '';
-  const hash = Math.abs([...name].reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0));
-  return `${code}-${String(hash % 1000).padStart(3, '0')}`;
+function truncateLabel(name, max = 28) {
+  if (!name) return '—';
+  if (name.length <= max) return name;
+  return `${name.substring(0, max)}…`;
 }
 
 function getPrecision(metric) {
@@ -79,8 +77,15 @@ export default function RealtimeStream({ entries = [] }) {
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-light)' }}>
                   {formatTimestamp(entry.timestamp)}
                 </td>
-                <td style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                  {getStationCode(entry.sensorName)}
+                <td>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem' }} title={entry.sensorName || undefined}>
+                    {truncateLabel(entry.sensorName)}
+                  </div>
+                  {entry.sensorId != null && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.1rem' }}>
+                      ID: {entry.sensorId}
+                    </div>
+                  )}
                 </td>
                 <td style={{ color: 'var(--text-secondary)' }}>
                   {METRIC_LABELS[entry.metricType] || entry.metricType}
