@@ -39,6 +39,20 @@ function hashCode(str) {
   return hash;
 }
 
+function formatTemp(value) {
+  if (value == null) return '--';
+  if (value > 999) return '>999';
+  if (value < -999) return '<-999';
+  return value.toFixed(1);
+}
+
+function formatHumidity(value) {
+  if (value == null) return '-- RH';
+  if (value > 100) return '>100% RH';
+  if (value < 0) return '<0% RH';
+  return `${value.toFixed(0)}% RH`;
+}
+
 export default function StationCard({ sensor }) {
   const { sensorName, location, latestMetrics = {}, status = 'online' } = sensor;
   const temp = latestMetrics.temperature;
@@ -49,23 +63,23 @@ export default function StationCard({ sensor }) {
   return (
     <div className="station-card">
       <div className="station-header">
-        <div>
-          <div className="station-name">{location || sensorName}</div>
-          <div className="station-id">Station: {stationId}</div>
+        <div className="station-header-text">
+          <div className="station-name" title={location || sensorName}>{location || sensorName}</div>
+          <div className="station-id" title={stationId}>Station: {stationId}</div>
         </div>
         <WeatherIcon size={28} className="station-weather-icon" />
       </div>
 
       <div className="station-temp">
         <span className="station-temp-value">
-          {temp != null ? temp.toFixed(1) : '--'}
+          {formatTemp(temp)}
         </span>
         <span className="station-temp-unit">°C</span>
       </div>
 
       <div className="station-footer">
         <span className="station-humidity">
-          {humidity != null ? `${humidity.toFixed(0)}% RH` : '-- RH'}
+          {formatHumidity(humidity)}
         </span>
         <StatusBadge status={status} />
       </div>
@@ -88,7 +102,12 @@ export default function StationCard({ sensor }) {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
+          gap: 0.5rem;
           margin-bottom: 0.75rem;
+        }
+        .station-header-text {
+          min-width: 0;
+          flex: 1;
         }
         .station-name {
           font-size: 0.8rem;
@@ -96,14 +115,21 @@ export default function StationCard({ sensor }) {
           color: var(--text);
           text-transform: uppercase;
           letter-spacing: 0.02em;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .station-id {
           font-size: 0.65rem;
           color: var(--text-light);
           margin-top: 1px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .station-weather-icon {
           color: var(--primary-muted);
+          flex-shrink: 0;
         }
         .station-temp {
           margin-bottom: 0.75rem;
@@ -133,6 +159,10 @@ export default function StationCard({ sensor }) {
           background: var(--surface-alt);
           padding: 0.15rem 0.45rem;
           border-radius: var(--radius);
+          white-space: nowrap;
+          max-width: 50%;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
       `}</style>
     </div>

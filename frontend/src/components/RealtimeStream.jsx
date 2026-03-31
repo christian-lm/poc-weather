@@ -58,7 +58,7 @@ export default function RealtimeStream({ entries = [] }) {
             <th>Source</th>
             <th>Metric Type</th>
             <th>Reading</th>
-            <th>Precision</th>
+            <th title="Sensor measurement tolerance — how much the reading may differ from the true value">Precision</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -88,8 +88,11 @@ export default function RealtimeStream({ entries = [] }) {
                 <td style={{ fontWeight: 600 }}>
                   {entry.value != null ? `${entry.value.toFixed(2)} ${unit}` : '--'}
                 </td>
-                <td style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}>
-                  {precision || 'null'}
+                <td style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}
+                    title={precision
+                      ? `Measurement tolerance: the reading is accurate within ${precision}`
+                      : 'Precision not defined for this metric type'}>
+                  {precision || '—'}
                 </td>
                 <td>
                   <StatusBadge status={status} />
