@@ -4,6 +4,7 @@ import StationCard from '../components/StationCard';
 
 describe('StationCard', () => {
   const mockSensor = {
+    sensorId: 7,
     sensorName: 'Dublin Central',
     location: 'Dublin, Ireland',
     latestMetrics: {
@@ -21,6 +22,11 @@ describe('StationCard', () => {
   it('renders location name', () => {
     render(<StationCard sensor={mockSensor} />);
     expect(screen.getByText('Dublin, Ireland')).toBeInTheDocument();
+  });
+
+  it('renders database sensor id', () => {
+    render(<StationCard sensor={mockSensor} />);
+    expect(screen.getByText('ID: 7')).toBeInTheDocument();
   });
 
   it('renders humidity value', () => {

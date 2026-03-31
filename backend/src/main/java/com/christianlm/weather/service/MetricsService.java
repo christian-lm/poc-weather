@@ -3,6 +3,7 @@ package com.christianlm.weather.service;
 import com.christianlm.weather.dto.MetricIngestRequest;
 import com.christianlm.weather.dto.MetricIngestResponse;
 import com.christianlm.weather.dto.MetricQueryResponse;
+import com.christianlm.weather.dto.PageResponse;
 import com.christianlm.weather.model.Sensor;
 import com.christianlm.weather.model.SensorMetric;
 import com.christianlm.weather.repository.MetricAggregationResult;
@@ -13,6 +14,10 @@ import com.christianlm.weather.validation.StatisticType;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -179,6 +184,45 @@ public class MetricsService {
                             .build();
                 })
                 .toList();
+    }
+
+    /**
+     * Paginated variant: fetches a page of sensors first, then loads only
+     * the latest metrics for those sensors. Avoids full-table scans on
+     * the hypertable when only a small page is needed.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<SensorLatestResponse> getLatestAllPaged(int page, int size) {
+        PageRequest pageable = PageRequest.of(page, Math.min(size, 100),
+                Sort.by("location").ascending().and(Sort.by("name").ascending()));
+        Page<Sensor> sensorPage = sensorRepository.findAll(pageable);
+
+        List<Long> sensorIds = sensorPage.getContent().stream()
+                .map(Sensor::getId)
+                .toList();
+
+        Map<Long, Map<String, Double>> grouped = new LinkedHashMap<>();
+        if (!sensorIds.isEmpty()) {
+            List<MetricAggregationResult> rawResults = metricRepository.findLatestBySensorIds(sensorIds);
+            for (MetricAggregationResult row : rawResults) {
+                grouped.computeIfAbsent(row.getSensorId(), k -> new LinkedHashMap<>())
+                        .put(row.getMetricType(), row.getStatValue());
+            }
+        }
+
+        List<SensorLatestResponse> content = sensorPage.getContent().stream()
+                .map(sensor -> SensorLatestResponse.builder()
+                        .sensorId(sensor.getId())
+                        .sensorName(sensor.getName())
+                        .location(sensor.getLocation())
+                        .latestMetrics(grouped.getOrDefault(sensor.getId(), Map.of()))
+                        .lastUpdated(Instant.now())
+                        .status("online")
+                        .build())
+                .toList();
+
+        Page<SensorLatestResponse> resultPage = new PageImpl<>(content, pageable, sensorPage.getTotalElements());
+        return PageResponse.of(resultPage);
     }
 
     @Transactional(readOnly = true)

@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Modifying;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -16,6 +18,10 @@ import java.util.List;
  */
 @Repository
 public interface SensorMetricRepository extends JpaRepository<SensorMetric, SensorMetricId> {
+
+    @Modifying
+    @Query(value = "DELETE FROM sensor_metrics WHERE sensor_id = :sensorId", nativeQuery = true)
+    void deleteBySensorId(@Param("sensorId") Long sensorId);
 
     @Query(value = """
         SELECT sm.sensor_id AS sensorId, sm.metric_type AS metricType, AVG(sm.value) AS statValue
@@ -100,6 +106,15 @@ public interface SensorMetricRepository extends JpaRepository<SensorMetric, Sens
         ORDER BY sm.sensor_id, sm.metric_type, sm.time DESC
         """, nativeQuery = true)
     List<MetricAggregationResult> findLatestAllSensorsMetrics();
+
+    @Query(value = """
+        SELECT DISTINCT ON (sm.sensor_id, sm.metric_type)
+            sm.sensor_id AS sensorId, sm.metric_type AS metricType, sm.value AS statValue
+        FROM sensor_metrics sm
+        WHERE sm.sensor_id IN (:sensorIds)
+        ORDER BY sm.sensor_id, sm.metric_type, sm.time DESC
+        """, nativeQuery = true)
+    List<MetricAggregationResult> findLatestBySensorIds(@Param("sensorIds") List<Long> sensorIds);
 
     @Query(value = """
         SELECT sm.time AS time, sm.sensor_id AS sensorId, sm.metric_type AS metricType, sm.value AS value

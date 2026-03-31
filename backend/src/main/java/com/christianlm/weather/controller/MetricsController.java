@@ -4,6 +4,7 @@ import com.christianlm.weather.dto.MetricIngestRequest;
 import com.christianlm.weather.dto.MetricIngestResponse;
 import com.christianlm.weather.dto.MetricQueryResponse;
 import com.christianlm.weather.dto.MetricStreamEntry;
+import com.christianlm.weather.dto.PageResponse;
 import com.christianlm.weather.dto.SensorLatestResponse;
 import com.christianlm.weather.dto.ThroughputEntry;
 import com.christianlm.weather.service.MetricsService;
@@ -51,12 +52,14 @@ public class MetricsController {
     }
 
     /**
-     * Returns the latest reading for every sensor and metric type.
+     * Returns the latest reading per sensor and metric type, paginated.
      * Used by the dashboard to populate station cards.
      */
     @GetMapping("/latest-all")
-    public ResponseEntity<List<SensorLatestResponse>> getLatestAll() {
-        return ResponseEntity.ok(metricsService.getLatestAll());
+    public ResponseEntity<PageResponse<SensorLatestResponse>> getLatestAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(metricsService.getLatestAllPaged(page, size));
     }
 
     /**

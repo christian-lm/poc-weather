@@ -25,11 +25,17 @@ api.interceptors.response.use(
 );
 
 /**
- * Lists all registered sensors.
- * @returns {Promise<Array<{id: number, name: string, location: string, createdAt: string}>>}
+ * Lists sensors with server-side pagination and optional search.
+ * @param {Object}  [opts]
+ * @param {number}  [opts.page=0]   - Zero-based page index
+ * @param {number}  [opts.size=20]  - Page size
+ * @param {string}  [opts.search]   - Free-text filter on name/location
+ * @returns {Promise<{content: Array, page: number, size: number, totalElements: number, totalPages: number}>}
  */
-export async function fetchSensors() {
-  const { data } = await api.get('/sensors');
+export async function fetchSensors({ page = 0, size = 20, search } = {}) {
+  const params = new URLSearchParams({ page, size });
+  if (search) params.set('search', search);
+  const { data } = await api.get(`/sensors?${params.toString()}`);
   return data;
 }
 
@@ -41,6 +47,26 @@ export async function fetchSensors() {
 export async function createSensor(payload) {
   const { data } = await api.post('/sensors', payload);
   return data;
+}
+
+/**
+ * Updates an existing sensor's name and/or location.
+ * @param {number} id - Sensor ID
+ * @param {{name: string, location?: string}} payload
+ * @returns {Promise<Object>} The updated sensor
+ */
+export async function updateSensor(id, payload) {
+  const { data } = await api.put(`/sensors/${id}`, payload);
+  return data;
+}
+
+/**
+ * Deletes a sensor and all its associated metrics.
+ * @param {number} id - Sensor ID
+ * @returns {Promise<void>}
+ */
+export async function deleteSensor(id) {
+  await api.delete(`/sensors/${id}`);
 }
 
 /**
@@ -76,11 +102,14 @@ export async function queryMetrics({ sensorIds, metrics, statistic, startDate, e
 }
 
 /**
- * Fetches the latest reading per sensor and metric type.
- * @returns {Promise<Array<{sensorId: number, sensorName: string, latestMetrics: Object, status: string}>>}
+ * Fetches the latest reading per sensor and metric type, paginated.
+ * @param {Object} [opts]
+ * @param {number} [opts.page=0]  - Zero-based page index
+ * @param {number} [opts.size=20] - Page size
+ * @returns {Promise<{content: Array, page: number, size: number, totalElements: number, totalPages: number}>}
  */
-export async function fetchLatestAll() {
-  const { data } = await api.get('/metrics/latest-all');
+export async function fetchLatestAll({ page = 0, size = 20 } = {}) {
+  const { data } = await api.get(`/metrics/latest-all?page=${page}&size=${size}`);
   return data;
 }
 

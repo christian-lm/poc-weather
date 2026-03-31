@@ -4,29 +4,39 @@
  * throughput chart, and a real-time metric stream. All data is fetched in
  * parallel via {@link usePolling} at a 30-second interval.
  */
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { fetchLatestAll, fetchStream, fetchThroughput } from '../services/api';
 import usePolling from '../hooks/usePolling';
 import StationCard from '../components/StationCard';
 import ThroughputChart from '../components/ThroughputChart';
 import RealtimeStream from '../components/RealtimeStream';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 export default function Dashboard() {
   const [stations, setStations] = useState([]);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [streamEntries, setStreamEntries] = useState([]);
   const [throughputData, setThroughputData] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [error, setError] = useState(null);
+  const pageRef = useRef(page);
+  pageRef.current = page;
 
   const refresh = useCallback(async () => {
     try {
       const [latestData, streamData, throughput] = await Promise.all([
-        fetchLatestAll(),
-        fetchStream(20),
+        fetchLatestAll({ page: pageRef.current, size: PAGE_SIZE }),
+        fetchStream(10),
         fetchThroughput(24),
       ]);
-      setStations(latestData);
+      setStations(latestData.content);
+      setTotalPages(latestData.totalPages);
+      setTotalElements(latestData.totalElements);
       setStreamEntries(streamData);
       setThroughputData(throughput);
       setLastUpdate(new Date());
@@ -37,6 +47,12 @@ export default function Dashboard() {
   }, []);
 
   usePolling(refresh, 30000);
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    pageRef.current = newPage;
+    refresh();
+  };
 
   const allNominal = stations.length > 0 && stations.every(s => s.status !== 'maintenance' && s.status !== 'offline');
 
@@ -93,6 +109,13 @@ export default function Dashboard() {
           </>
         )}
       </div>
+
+      {totalPages > 1 && (
+        <div className="dashboard-pagination">
+          <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+          <span className="pagination-info">{totalElements} sensors total</span>
+        </div>
+      )}
 
       <div style={{ marginTop: '1.5rem' }}>
         <ThroughputChart data={throughputData} />
@@ -177,6 +200,18 @@ export default function Dashboard() {
         @keyframes pulse {
           0%, 100% { opacity: 0.6; }
           50% { opacity: 0.3; }
+        }
+
+        .dashboard-pagination {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.35rem;
+          margin-top: 0.25rem;
+        }
+        .pagination-info {
+          font-size: 0.72rem;
+          color: var(--text-light);
         }
 
         .dashboard-footer {

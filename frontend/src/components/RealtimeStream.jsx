@@ -23,12 +23,10 @@ function formatTimestamp(ts) {
   });
 }
 
-function getStationCode(name) {
-  if (!name) return '--';
-  const parts = name.split(/\s+/);
-  const code = parts[0]?.substring(0, 2).toUpperCase() || '';
-  const hash = Math.abs([...name].reduce((h, c) => ((h << 5) - h) + c.charCodeAt(0), 0));
-  return `${code}-${String(hash % 1000).padStart(3, '0')}`;
+function truncateLabel(name, max = 28) {
+  if (!name) return '—';
+  if (name.length <= max) return name;
+  return `${name.substring(0, max)}…`;
 }
 
 function getPrecision(metric) {
@@ -58,7 +56,7 @@ export default function RealtimeStream({ entries = [] }) {
             <th>Source</th>
             <th>Metric Type</th>
             <th>Reading</th>
-            <th>Precision</th>
+            <th title="Sensor measurement tolerance — how much the reading may differ from the true value">Precision</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -79,8 +77,15 @@ export default function RealtimeStream({ entries = [] }) {
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-light)' }}>
                   {formatTimestamp(entry.timestamp)}
                 </td>
-                <td style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                  {getStationCode(entry.sensorName)}
+                <td>
+                  <div style={{ fontWeight: 600, fontSize: '0.85rem' }} title={entry.sensorName || undefined}>
+                    {truncateLabel(entry.sensorName)}
+                  </div>
+                  {entry.sensorId != null && (
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.1rem' }}>
+                      ID: {entry.sensorId}
+                    </div>
+                  )}
                 </td>
                 <td style={{ color: 'var(--text-secondary)' }}>
                   {METRIC_LABELS[entry.metricType] || entry.metricType}
@@ -88,8 +93,11 @@ export default function RealtimeStream({ entries = [] }) {
                 <td style={{ fontWeight: 600 }}>
                   {entry.value != null ? `${entry.value.toFixed(2)} ${unit}` : '--'}
                 </td>
-                <td style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}>
-                  {precision || 'null'}
+                <td style={{ color: 'var(--text-light)', fontSize: '0.8rem' }}
+                    title={precision
+                      ? `Measurement tolerance: the reading is accurate within ${precision}`
+                      : 'Precision not defined for this metric type'}>
+                  {precision || '—'}
                 </td>
                 <td>
                   <StatusBadge status={status} />
