@@ -15,6 +15,7 @@ backend/.mvn/wrapper/maven-wrapper.jar
 .idea/
 *.iml
 .vscode/
+.cursor/
 *.swp
 
 # Node
