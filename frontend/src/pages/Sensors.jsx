@@ -525,9 +525,11 @@ export default function Sensors() {
           transition: all var(--transition);
           font-family: inherit;
         }
-        .del-modal-cancel:hover {
+        /* Overrides global button:hover background (higher specificity than .del-modal-* alone) */
+        button.del-modal-cancel:hover {
           border-color: var(--text-muted);
           color: var(--text);
+          background: var(--surface-hover);
         }
         .del-modal-confirm {
           display: flex;
@@ -544,8 +546,9 @@ export default function Sensors() {
           transition: all var(--transition);
           font-family: inherit;
         }
-        .del-modal-confirm:hover:not(:disabled) {
-          filter: brightness(0.85);
+        button.del-modal-confirm:hover:not(:disabled) {
+          background: var(--error-hover);
+          color: #fff;
         }
         .del-modal-confirm:disabled {
           opacity: 0.6;
