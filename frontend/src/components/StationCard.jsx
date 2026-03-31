@@ -6,6 +6,7 @@
  *
  * @param {Object} props
  * @param {Object} props.sensor - Sensor data from the /metrics/latest-all endpoint
+ * @param {number} props.sensor.sensorId - Database sensor id from the API
  * @param {string} props.sensor.sensorName
  * @param {string} props.sensor.location
  * @param {Object} props.sensor.latestMetrics - Map of metric type to latest value
@@ -23,22 +24,6 @@ function getWeatherIcon(temp) {
   return Snowflake;
 }
 
-function getStationId(name) {
-  if (!name) return '';
-  const parts = name.toLowerCase().split(/\s+/);
-  const city = parts[0]?.substring(0, 2).toUpperCase() || '';
-  return `${city}-${String(Math.abs(hashCode(name)) % 1000).padStart(3, '0')}`;
-}
-
-function hashCode(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    hash |= 0;
-  }
-  return hash;
-}
-
 function formatTemp(value) {
   if (value == null) return '--';
   if (value > 999) return '>999';
@@ -54,18 +39,21 @@ function formatHumidity(value) {
 }
 
 export default function StationCard({ sensor }) {
-  const { sensorName, location, latestMetrics = {}, status = 'online' } = sensor;
+  const { sensorId, sensorName, location, latestMetrics = {}, status = 'online' } = sensor;
   const temp = latestMetrics.temperature;
   const humidity = latestMetrics.humidity;
   const WeatherIcon = getWeatherIcon(temp);
-  const stationId = getStationId(sensorName);
+  const idLine = sensorId != null ? `ID: ${sensorId}` : null;
+  const idTitle = sensorName ? `Sensor: ${sensorName}` : undefined;
 
   return (
     <div className="station-card">
       <div className="station-header">
         <div className="station-header-text">
           <div className="station-name" title={location || sensorName}>{location || sensorName}</div>
-          <div className="station-id" title={stationId}>Station: {stationId}</div>
+          {idLine && (
+            <div className="station-id" title={idTitle}>{idLine}</div>
+          )}
         </div>
         <WeatherIcon size={28} className="station-weather-icon" />
       </div>
