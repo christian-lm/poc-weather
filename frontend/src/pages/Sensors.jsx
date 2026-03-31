@@ -5,7 +5,8 @@
  * Supports server-side search, inline editing, and deletion with confirmation.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Radio, MapPin, Clock, Search, Pencil, Trash2, Check, X, AlertTriangle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Radio, MapPin, Clock, Search, Pencil, Trash2, Check, X, AlertTriangle, PlusCircle } from 'lucide-react';
 import { fetchSensors, updateSensor, deleteSensor } from '../services/api';
 import StatusBadge from '../components/StatusBadge';
 import Pagination from '../components/Pagination';
@@ -136,7 +137,13 @@ export default function Sensors() {
             </button>
           )}
         </div>
-        <span className="sensor-toolbar-count">{totalElements} sensors</span>
+        <div className="sensor-toolbar-actions">
+          <span className="sensor-toolbar-count">{totalElements} sensors</span>
+          <Link to="/registration" className="sensor-add-btn">
+            <PlusCircle size={16} aria-hidden />
+            Add sensor
+          </Link>
+        </div>
       </div>
 
       {loading && (
@@ -153,7 +160,7 @@ export default function Sensors() {
 
       {!loading && !error && sensors.length === 0 && (
         <div className="card" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-light)' }}>
-          {search ? `No sensors match "${search}"` : <>No sensors registered yet. <a href="/registration">Register your first sensor</a>.</>}
+          {search ? `No sensors match "${search}"` : <>No sensors registered yet. <Link to="/registration">Register your first sensor</Link>.</>}
         </div>
       )}
 
@@ -339,10 +346,33 @@ export default function Sensors() {
           color: var(--text);
           background: var(--surface-alt);
         }
+        .sensor-toolbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.85rem;
+          flex-shrink: 0;
+        }
         .sensor-toolbar-count {
           font-size: 0.78rem;
           color: var(--text-light);
           white-space: nowrap;
+        }
+        .sensor-add-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.4rem;
+          font-size: 0.8125rem;
+          font-weight: 500;
+          padding: 0.5rem 0.95rem;
+          border-radius: var(--radius);
+          background: var(--primary);
+          color: white !important;
+          text-decoration: none !important;
+          box-shadow: var(--shadow-sm);
+          transition: background var(--transition);
+        }
+        .sensor-add-btn:hover {
+          background: var(--primary-hover);
         }
         .sensor-table {
           table-layout: fixed;
