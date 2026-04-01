@@ -141,10 +141,10 @@ public class MetricsService {
             rawResults = fetchAggregated(resolvedSensorIds, normalizedMetrics, stat, startDate, endDate);
         }
 
-        Map<Long, String> sensorNames = sensorRepository.findAllById(resolvedSensorIds).stream()
-                .collect(Collectors.toMap(Sensor::getId, Sensor::getName));
+        Map<Long, Sensor> sensorMap = sensorRepository.findAllById(resolvedSensorIds).stream()
+                .collect(Collectors.toMap(Sensor::getId, s -> s));
 
-        List<MetricQueryResponse.SensorResult> results = buildResults(rawResults, sensorNames);
+        List<MetricQueryResponse.SensorResult> results = buildResults(rawResults, sensorMap);
 
         return MetricQueryResponse.builder()
                 .query(MetricQueryResponse.QueryParams.builder()
@@ -229,17 +229,21 @@ public class MetricsService {
     public List<MetricStreamEntry> getRecentStream(int limit) {
         List<RecentMetricResult> raw = metricRepository.findRecentMetrics(Math.min(limit, 100));
 
-        Map<Long, String> sensorNames = sensorRepository.findAll().stream()
-                .collect(Collectors.toMap(Sensor::getId, Sensor::getName));
+        Map<Long, Sensor> sensorMap = sensorRepository.findAll().stream()
+                .collect(Collectors.toMap(Sensor::getId, s -> s));
 
         return raw.stream()
-                .map(r -> MetricStreamEntry.builder()
-                        .timestamp(r.getTime())
-                        .sensorId(r.getSensorId())
-                        .sensorName(sensorNames.getOrDefault(r.getSensorId(), "Unknown"))
-                        .metricType(r.getMetricType())
-                        .value(r.getValue())
-                        .build())
+                .map(r -> {
+                    Sensor sensor = sensorMap.get(r.getSensorId());
+                    return MetricStreamEntry.builder()
+                            .timestamp(r.getTime())
+                            .sensorId(r.getSensorId())
+                            .sensorName(sensor != null ? sensor.getName() : "Unknown")
+                            .location(sensor != null ? sensor.getLocation() : null)
+                            .metricType(r.getMetricType())
+                            .value(r.getValue())
+                            .build();
+                })
                 .toList();
     }
 
@@ -288,7 +292,7 @@ public class MetricsService {
      * Groups raw projection results by sensor ID and builds the response DTOs.
      */
     private List<MetricQueryResponse.SensorResult> buildResults(
-            List<MetricAggregationResult> rawResults, Map<Long, String> sensorNames) {
+            List<MetricAggregationResult> rawResults, Map<Long, Sensor> sensorMap) {
 
         Map<Long, Map<String, Double>> grouped = new LinkedHashMap<>();
 
@@ -298,11 +302,15 @@ public class MetricsService {
         }
 
         return grouped.entrySet().stream()
-                .map(entry -> MetricQueryResponse.SensorResult.builder()
-                        .sensorId(entry.getKey())
-                        .sensorName(sensorNames.getOrDefault(entry.getKey(), "Unknown"))
-                        .data(entry.getValue())
-                        .build())
+                .map(entry -> {
+                    Sensor sensor = sensorMap.get(entry.getKey());
+                    return MetricQueryResponse.SensorResult.builder()
+                            .sensorId(entry.getKey())
+                            .sensorName(sensor != null ? sensor.getName() : "Unknown")
+                            .location(sensor != null ? sensor.getLocation() : null)
+                            .data(entry.getValue())
+                            .build();
+                })
                 .toList();
     }
 

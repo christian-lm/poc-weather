@@ -1,9 +1,3 @@
-/**
- * @module pages/MetricsQuery
- * @description Two-panel query interface: left sidebar with the Query Builder form
- * (sensor checkboxes, metric multi-select, aggregation, date range) and right
- * content area displaying a bar chart visualization + raw telemetry table.
- */
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Filter, Zap, Search, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
@@ -63,7 +57,7 @@ export default function MetricsQueryPage() {
     toastTimer.current = setTimeout(() => setToast(null), 4000);
   };
 
-  const MAX_SENSORS = 20;
+  const MAX_SENSORS = 10;
 
   const toggleSensor = (id) => {
     setSelectedSensors(prev => {
@@ -88,12 +82,12 @@ export default function MetricsQueryPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedMetrics.length) {
-      showToast('Select at least one metric', 'error');
+    if (!selectedSensors.length) {
+      showToast(`Select at least one sensor (max ${MAX_SENSORS})`, 'error');
       return;
     }
-    if (selectedSensors.length === 0) {
-      showToast('Select at least one sensor to get meaningful results', 'error');
+    if (!selectedMetrics.length) {
+      showToast('Select at least one metric', 'error');
       return;
     }
     if (!useLatest && new Date(startDate) > new Date(endDate)) {
@@ -125,9 +119,10 @@ export default function MetricsQueryPage() {
     for (const [k, v] of Object.entries(r.data)) {
       rounded[k] = v != null ? Math.round(v * 100) / 100 : null;
     }
+    const displayName = r.location || r.sensorName;
     return {
-      name: r.sensorName,
-      shortName: truncateLabel(r.sensorName),
+      name: displayName,
+      shortName: truncateLabel(displayName),
       ...rounded,
     };
   }) || [];
@@ -145,7 +140,7 @@ export default function MetricsQueryPage() {
         <div className="mq-sidebar-scroll">
           <div className="mq-section">
             <div className="mq-section-header">
-              <label>Sensors{selectedSensors.length > 0 && ` (${selectedSensors.length}/${MAX_SENSORS})`}</label>
+              <label>Sensors{selectedSensors.length > 0 ? ` (${selectedSensors.length}/${MAX_SENSORS})` : ''}</label>
               {selectedSensors.length > 0 && (
                 <button type="button" className="mq-sensor-action-link" onClick={clearAllSensors}>Clear</button>
               )}
@@ -168,7 +163,7 @@ export default function MetricsQueryPage() {
                     checked={selectedSensors.includes(s.id)}
                     onChange={() => toggleSensor(s.id)}
                   />
-                  <span className="mq-checkbox-text">{s.name}</span>
+                  <span className="mq-checkbox-text">{s.location || s.name}</span>
                 </label>
               ))}
               {!sensorsLoaded && (
@@ -235,9 +230,9 @@ export default function MetricsQueryPage() {
           )}
         </div>
 
-        <button type="submit" className="primary mq-submit-btn" disabled={loading}>
+        <button type="submit" className="primary mq-submit-btn" disabled={loading || !selectedSensors.length}>
           <Filter size={14} />
-          {loading ? 'Querying...' : 'Run Query'}
+          {loading ? 'Querying...' : selectedSensors.length === 0 ? 'Select Sensors' : 'Run Query'}
         </button>
       </form>
 
@@ -247,7 +242,7 @@ export default function MetricsQueryPage() {
             <Filter size={32} style={{ color: 'var(--text-light)', marginBottom: '0.75rem' }} />
             <h3 style={{ fontSize: '1.1rem', marginBottom: '0.35rem' }}>Temporal Analysis</h3>
             <p style={{ color: 'var(--text-light)', fontSize: '0.85rem' }}>
-              Select sensors and metrics, then click "Run Query" to visualize your data.
+              Select up to {MAX_SENSORS} sensors and your desired metrics, then click &ldquo;Run Query&rdquo; to visualize.
             </p>
           </div>
         )}
@@ -328,8 +323,12 @@ export default function MetricsQueryPage() {
                         <tr key={r.sensorId}>
                           <td>
                             <strong style={{ color: 'var(--text)' }} title={r.sensorName}>{truncateLabel(r.sensorName, 30)}</strong>
-                            <br />
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>ID: {r.sensorId}</span>
+                            {r.location && (
+                              <>
+                                <br />
+                                <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>{truncateLabel(r.location, 36)}</span>
+                              </>
+                            )}
                           </td>
                           {selectedMetrics.map(m => (
                             <td key={m} style={{ fontWeight: 600, color: 'var(--text)', fontVariantNumeric: 'tabular-nums' }}>
