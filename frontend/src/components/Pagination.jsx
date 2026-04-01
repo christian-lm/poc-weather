@@ -1,13 +1,3 @@
-/**
- * @module components/Pagination
- * @description Reusable pagination control with previous/next buttons and
- * a compact page-number strip. Hides itself when totalPages <= 1.
- *
- * @param {Object}   props
- * @param {number}   props.page         - Current zero-based page index
- * @param {number}   props.totalPages   - Total number of pages
- * @param {Function} props.onPageChange - Called with the new page index
- */
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 function getVisiblePages(current, total) {

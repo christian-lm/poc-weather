@@ -1,27 +1,18 @@
-/**
- * @module layout/Sidebar
- * @description Fixed left sidebar with primary navigation and project branding.
- * Uses react-router-dom NavLink for active-route highlighting.
- * Navigation items are defined declaratively via NAV_ITEMS array.
- */
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Radio,
   BarChart3,
   PlusCircle,
-  HeartPulse,
   BookOpen,
 } from 'lucide-react';
 import clsx from 'clsx';
 
-/** @type {Array<{to: string, icon: import('lucide-react').LucideIcon, label: string, external?: boolean, href?: string}>} */
 const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/sensors', icon: Radio, label: 'Sensors' },
   { to: '/metrics', icon: BarChart3, label: 'Metrics Query' },
   { to: '/registration', icon: PlusCircle, label: 'Registration' },
-  { to: '/health', icon: HeartPulse, label: 'System Health' },
 ];
 
 export default function Sidebar() {

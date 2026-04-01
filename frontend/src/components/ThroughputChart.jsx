@@ -1,20 +1,5 @@
-/**
- * @module components/ThroughputChart
- * @description Bar chart showing hourly metric ingestion counts.
- * Data comes from GET /api/v1/metrics/throughput which uses
- * TimescaleDB time_bucket('1 hour', time) — values are deterministic
- * and reflect actual database state.
- *
- * @param {Object} props
- * @param {Array<{time: string, count: number}>} props.data - Hourly bucket data from backend
- */
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-/**
- * Formats an ISO timestamp to a short hour label (e.g. "14:00").
- * @param {string} isoString
- * @returns {string}
- */
 function formatHour(isoString) {
   const d = new Date(isoString);
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });

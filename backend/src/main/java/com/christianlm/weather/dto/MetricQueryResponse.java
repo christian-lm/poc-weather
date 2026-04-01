@@ -37,6 +37,7 @@ public class MetricQueryResponse {
     public static class SensorResult {
         private Long sensorId;
         private String sensorName;
+        private String location;
         private Map<String, Double> data;
     }
 }

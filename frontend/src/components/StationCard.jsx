@@ -1,17 +1,3 @@
-/**
- * @module components/StationCard
- * @description Dashboard card for a single weather station showing the latest
- * temperature, humidity, a weather-condition icon (derived from temp range),
- * and an operational status badge.
- *
- * @param {Object} props
- * @param {Object} props.sensor - Sensor data from the /metrics/latest-all endpoint
- * @param {number} props.sensor.sensorId - Database sensor id from the API
- * @param {string} props.sensor.sensorName
- * @param {string} props.sensor.location
- * @param {Object} props.sensor.latestMetrics - Map of metric type to latest value
- * @param {string} [props.sensor.status='online']
- */
 import { Cloud, CloudRain, Sun, CloudSun, Snowflake } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
@@ -39,20 +25,18 @@ function formatHumidity(value) {
 }
 
 export default function StationCard({ sensor }) {
-  const { sensorId, sensorName, location, latestMetrics = {}, status = 'online' } = sensor;
+  const { sensorName, location, latestMetrics = {}, status = 'online' } = sensor;
   const temp = latestMetrics.temperature;
   const humidity = latestMetrics.humidity;
   const WeatherIcon = getWeatherIcon(temp);
-  const idLine = sensorId != null ? `ID: ${sensorId}` : null;
-  const idTitle = sensorName ? `Sensor: ${sensorName}` : undefined;
 
   return (
     <div className="station-card">
       <div className="station-header">
         <div className="station-header-text">
           <div className="station-name" title={location || sensorName}>{location || sensorName}</div>
-          {idLine && (
-            <div className="station-id" title={idTitle}>{idLine}</div>
+          {sensorName && (
+            <div className="station-id" title={sensorName}>{sensorName}</div>
           )}
         </div>
         <WeatherIcon size={28} className="station-weather-icon" />

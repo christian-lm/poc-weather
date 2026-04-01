@@ -1,13 +1,3 @@
-/**
- * @module components/RealtimeStream
- * @description Table of the most recent individual metric readings. Each row
- * shows timestamp, originating sensor, metric type, raw value, and a quality
- * status badge. Entries come from the
- * /metrics/stream endpoint.
- *
- * @param {Object} props
- * @param {Array<{timestamp: string, sensorId: number, sensorName: string, metricType: string, value: number}>} props.entries
- */
 import { ExternalLink } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import { METRIC_UNITS, METRIC_LABELS } from '../constants/metrics';
@@ -69,9 +59,9 @@ export default function RealtimeStream({ entries = [] }) {
                   <div style={{ fontWeight: 600, fontSize: '0.85rem' }} title={entry.sensorName || undefined}>
                     {truncateLabel(entry.sensorName)}
                   </div>
-                  {entry.sensorId != null && (
+                  {entry.location && (
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-light)', marginTop: '0.1rem' }}>
-                      ID: {entry.sensorId}
+                      {truncateLabel(entry.location, 32)}
                     </div>
                   )}
                 </td>
