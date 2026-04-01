@@ -3,10 +3,16 @@ package com.christianlm.weather.service;
 import com.christianlm.weather.dto.MetricIngestRequest;
 import com.christianlm.weather.dto.MetricIngestResponse;
 import com.christianlm.weather.dto.MetricQueryResponse;
+import com.christianlm.weather.dto.MetricStreamEntry;
+import com.christianlm.weather.dto.PageResponse;
+import com.christianlm.weather.dto.SensorLatestResponse;
+import com.christianlm.weather.dto.ThroughputEntry;
 import com.christianlm.weather.model.Sensor;
 import com.christianlm.weather.repository.MetricAggregationResult;
+import com.christianlm.weather.repository.RecentMetricResult;
 import com.christianlm.weather.repository.SensorMetricRepository;
 import com.christianlm.weather.repository.SensorRepository;
+import com.christianlm.weather.repository.ThroughputBucket;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,6 +21,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -167,6 +178,122 @@ class MetricsServiceTest {
                     Instant.now().minus(7, ChronoUnit.DAYS), Instant.now()))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("Invalid statistic type");
+        }
+    }
+
+    @Nested
+    @DisplayName("IngestBatch")
+    class IngestBatchTests {
+
+        @Test
+        @DisplayName("should ingest batch of metrics successfully")
+        void shouldIngestBatchOfMetricsSuccessfully() {
+            when(sensorRepository.existsById(1L)).thenReturn(true);
+            when(sensorRepository.existsById(2L)).thenReturn(true);
+            when(metricRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+            List<MetricIngestRequest> requests = List.of(
+                    MetricIngestRequest.builder()
+                            .sensorId(1L)
+                            .metrics(Map.of("temperature", 22.5))
+                            .build(),
+                    MetricIngestRequest.builder()
+                            .sensorId(2L)
+                            .metrics(Map.of("humidity", 65.0))
+                            .build());
+
+            List<MetricIngestResponse> responses = metricsService.ingestBatch(requests);
+
+            assertThat(responses).hasSize(2);
+            assertThat(responses).extracting(MetricIngestResponse::getStatus).containsOnly("accepted");
+        }
+    }
+
+    @Nested
+    @DisplayName("GetLatestAllPaged")
+    class GetLatestAllPagedTests {
+
+        @Test
+        @DisplayName("should return paginated latest metrics")
+        void shouldReturnPaginatedLatestMetrics() {
+            Sensor sensor = Sensor.builder().id(1L).name("Sensor Alpha").location("North").build();
+            Pageable pageable = PageRequest.of(0, 10,
+                    Sort.by("location").ascending().and(Sort.by("name").ascending()));
+            Page<Sensor> sensorPage = new PageImpl<>(List.of(sensor), pageable, 1);
+            when(sensorRepository.findAll(any(Pageable.class))).thenReturn(sensorPage);
+
+            MetricAggregationResult row = mockResult(1L, "temperature", 22.5);
+            when(metricRepository.findLatestBySensorIds(List.of(1L))).thenReturn(List.of(row));
+
+            PageResponse<SensorLatestResponse> response = metricsService.getLatestAllPaged(0, 10);
+
+            assertThat(response.getContent()).hasSize(1);
+            assertThat(response.getContent().get(0).getSensorName()).isEqualTo("Sensor Alpha");
+            assertThat(response.getContent().get(0).getLatestMetrics()).containsEntry("temperature", 22.5);
+        }
+    }
+
+    @Nested
+    @DisplayName("GetRecentStream")
+    class GetRecentStreamTests {
+
+        @Test
+        @DisplayName("should return recent stream entries")
+        void shouldReturnRecentStreamEntries() {
+            Instant t1 = Instant.now();
+            Instant t2 = t1.minusSeconds(1);
+
+            RecentMetricResult result1 = mock(RecentMetricResult.class);
+            when(result1.getTime()).thenReturn(t1);
+            when(result1.getSensorId()).thenReturn(1L);
+            when(result1.getMetricType()).thenReturn("temperature");
+            when(result1.getValue()).thenReturn(22.0);
+
+            RecentMetricResult result2 = mock(RecentMetricResult.class);
+            when(result2.getTime()).thenReturn(t2);
+            when(result2.getSensorId()).thenReturn(2L);
+            when(result2.getMetricType()).thenReturn("humidity");
+            when(result2.getValue()).thenReturn(55.0);
+
+            when(metricRepository.findRecentMetrics(5)).thenReturn(List.of(result1, result2));
+
+            Sensor s1 = Sensor.builder().id(1L).name("Alpha").build();
+            Sensor s2 = Sensor.builder().id(2L).name("Beta").build();
+            when(sensorRepository.findAll()).thenReturn(List.of(s1, s2));
+
+            List<MetricStreamEntry> entries = metricsService.getRecentStream(5);
+
+            assertThat(entries).hasSize(2);
+            assertThat(entries.get(0).getSensorName()).isEqualTo("Alpha");
+            assertThat(entries.get(1).getSensorName()).isEqualTo("Beta");
+        }
+    }
+
+    @Nested
+    @DisplayName("GetThroughput")
+    class GetThroughputTests {
+
+        @Test
+        @DisplayName("should return throughput buckets")
+        void shouldReturnThroughputBuckets() {
+            ThroughputBucket bucket1 = mock(ThroughputBucket.class);
+            when(bucket1.getBucketTime()).thenReturn(Instant.now());
+            when(bucket1.getCount()).thenReturn(10L);
+
+            ThroughputBucket bucket2 = mock(ThroughputBucket.class);
+            when(bucket2.getBucketTime()).thenReturn(Instant.now().minusSeconds(3600));
+            when(bucket2.getCount()).thenReturn(20L);
+
+            ThroughputBucket bucket3 = mock(ThroughputBucket.class);
+            when(bucket3.getBucketTime()).thenReturn(Instant.now().minusSeconds(7200));
+            when(bucket3.getCount()).thenReturn(30L);
+
+            when(metricRepository.findThroughputBuckets(any(Instant.class)))
+                    .thenReturn(List.of(bucket1, bucket2, bucket3));
+
+            List<ThroughputEntry> entries = metricsService.getThroughput(24);
+
+            assertThat(entries).hasSize(3);
         }
     }
 }

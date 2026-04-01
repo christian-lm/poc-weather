@@ -1,13 +1,3 @@
-/**
- * @module components/StatusBadge
- * @description Colour-coded pill badge that maps a status string (e.g. "online",
- * "timeout", "up") to a human label and semantic colour variant.
- * Falls back to an "info" style for unknown statuses.
- *
- * @param {Object} props
- * @param {string} props.status - Machine-readable status key
- * @param {string} [props.label] - Optional override for the displayed text
- */
 import clsx from 'clsx';
 
 const STATUS_CONFIG = {

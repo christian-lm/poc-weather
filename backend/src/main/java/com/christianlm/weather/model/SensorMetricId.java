@@ -6,11 +6,7 @@ import java.time.Instant;
 
 /**
  * Composite primary key for {@link SensorMetric}.
- *
- * <p>Implements {@link Serializable} as required by the JPA specification
- * for all {@code @IdClass} types. The EntityManager needs to serialize
- * composite keys for first-level cache identity management and detached
- * entity reattachment.</p>
+ * Implements {@link Serializable} as required by JPA for {@code @IdClass} types.
  */
 @Getter
 @Setter

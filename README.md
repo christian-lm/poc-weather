@@ -52,7 +52,7 @@ The database is pre-populated with 30 days of hourly data for 5 sensors across I
 | Database | TimescaleDB (PostgreSQL 16) | Purpose-built for time-series: hypertables, `time_bucket()`, automatic partitioning |
 | Migrations | Flyway | Version-controlled SQL, supports TimescaleDB extensions |
 | Observability | Micrometer, Actuator, Logstash JSON encoder | Production-ready metrics + structured logging |
-| Testing | JUnit 5, Mockito, MockMvc | Standard Spring Boot testing stack |
+| Testing | JUnit 5, Mockito, MockMvc, Vitest, Testing Library | Standard testing stacks for Spring Boot and React |
 
 ### Why TimescaleDB?
 
@@ -76,9 +76,11 @@ Base URL: `http://localhost:8080/api/v1`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/sensors` | List all sensors |
+| `GET` | `/sensors` | List sensors (paginated, optional `search`, `page`, `size`) |
 | `GET` | `/sensors/{id}` | Get sensor by ID |
 | `POST` | `/sensors` | Register new sensor |
+| `PUT` | `/sensors/{id}` | Update sensor name/location |
+| `DELETE` | `/sensors/{id}` | Delete sensor and all its metrics |
 
 **POST /sensors**
 ```json
@@ -112,8 +114,11 @@ Allowed metric types: `temperature`, `humidity`, `wind_speed`, `pressure`, `prec
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/metrics/query` | Query aggregated metrics |
+| `GET` | `/metrics/latest-all` | Latest readings per sensor (paginated) |
+| `GET` | `/metrics/stream` | Recent raw readings (`limit` param) |
+| `GET` | `/metrics/throughput` | Hourly ingestion counts (`hours` param) |
 
-**Parameters:**
+**Query Parameters (`/metrics/query`):**
 
 | Param | Type | Required | Description |
 |-------|------|----------|-------------|
@@ -142,19 +147,24 @@ GET /api/v1/metrics/query?sensorIds=1&metrics=temperature,humidity&statistic=ave
     {
       "sensorId": 1,
       "sensorName": "Sensor Alpha",
+      "location": "Dublin, Ireland",
       "data": { "temperature": 21.7, "humidity": 62.4 }
     }
   ]
 }
 ```
 
-### Health & Observability
+### Observability (Ops Endpoints)
+
+These endpoints are available for infrastructure monitoring tools (Prometheus, Grafana, CloudWatch) and Docker health checks. They are not exposed through the frontend UI.
 
 | Endpoint | Description |
 |----------|-------------|
 | `/actuator/health` | Health check (DB connectivity) |
 | `/actuator/metrics` | JVM + HTTP metrics |
 | `/actuator/prometheus` | Prometheus scrape endpoint |
+
+In production, these would be scraped by a Prometheus instance or CloudWatch agent rather than accessed directly by users.
 
 ---
 
@@ -185,8 +195,13 @@ poc-weather/
 │   ├── Dockerfile
 │   ├── nginx.conf
 │   └── src/
-│       ├── components/             # UI components
-│       └── services/               # API client
+│       ├── pages/                  # Dashboard, Sensors, MetricsQuery, Registration
+│       ├── components/             # Reusable UI components
+│       ├── layout/                 # Sidebar, TopBar, Layout shell
+│       ├── services/               # API client (Axios)
+│       ├── hooks/                  # Custom hooks (usePolling)
+│       ├── constants/              # Metric types, labels, units
+│       └── test/                   # Vitest + Testing Library tests
 ├── docker-compose.yml              # Full stack orchestration
 └── README.md
 ```
@@ -217,14 +232,31 @@ Frontend dev server runs on `http://localhost:3000` with API proxy to `:8080`.
 
 ## Testing
 
+### Backend
+
 ```bash
 cd backend
 mvn test
 ```
 
-Test coverage focuses on:
-- **Service layer**: aggregation logic, validation, edge cases (MetricsServiceTest)
-- **Controller layer**: HTTP status codes, request/response shapes (MetricsControllerTest)
+Test coverage includes:
+- **Service layer**: `MetricsServiceTest` (ingestion, batch, queries, aggregations, stream, throughput), `SensorServiceTest` (CRUD, pagination, search, validation)
+- **Controller layer**: `MetricsControllerTest` (all endpoints, HTTP status codes, request shapes), `SensorControllerTest` (CRUD endpoints, validation, pagination)
+- **Exception handling**: `GlobalExceptionHandlerTest` (validation errors, 400/404/500 responses)
+
+### Frontend
+
+```bash
+cd frontend
+npm test
+```
+
+Test coverage includes:
+- **Pages**: Dashboard, Sensors, MetricsQuery, Registration (loading states, data rendering, form submission, error handling)
+- **Components**: StationCard, StatusBadge, Pagination, ThroughputChart, RealtimeStream, ErrorBoundary
+- **Hooks**: usePolling (interval behavior, cleanup)
+- **Services**: api.js (parameter building, endpoint calls)
+- **Routing**: App routes, sidebar navigation
 
 ---
 
@@ -252,6 +284,7 @@ DB_PORT=5433 API_PORT=9090 UI_PORT=4000 docker-compose up --build
 4. **GET for queries** — idempotent, cacheable, fits REST semantics
 5. **Seed data in Flyway migration** — zero dependencies for the evaluator, data ready on first boot
 6. **Structured JSON logging** — production-ready, includes traceId for request correlation
+7. **Actuator for ops, not UI** — health/metrics endpoints are infrastructure concerns, consumed by monitoring tools (Prometheus/Grafana), not exposed to end users
 
 ## Simplifications (PoC scope)
 
@@ -262,4 +295,5 @@ DB_PORT=5433 API_PORT=9090 UI_PORT=4000 docker-compose up --build
 | HTTPS | HTTP only | ALB + ACM certificates |
 | CI/CD | Manual docker-compose | CodePipeline + ECR |
 | Data retention | Unlimited | TimescaleDB compression + retention policies |
-| Frontend tests | Deferred | Jest + React Testing Library |
+| TypeScript | Plain JSX | TypeScript for type safety |
+| State management | Local useState | React Query for server state caching |

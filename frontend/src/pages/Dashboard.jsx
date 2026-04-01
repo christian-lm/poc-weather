@@ -1,9 +1,3 @@
-/**
- * @module pages/Dashboard
- * @description Main dashboard page displaying station cards, hourly ingestion
- * throughput chart, and a real-time metric stream. All data is fetched in
- * parallel via {@link usePolling} at a 30-second interval.
- */
 import { useState, useCallback, useRef } from 'react';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { fetchLatestAll, fetchStream, fetchThroughput } from '../services/api';
