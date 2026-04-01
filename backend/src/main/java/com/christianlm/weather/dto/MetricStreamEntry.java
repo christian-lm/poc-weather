@@ -16,6 +16,7 @@ public class MetricStreamEntry {
     private Instant timestamp;
     private Long sensorId;
     private String sensorName;
+    private String location;
     private String metricType;
     private Double value;
 }

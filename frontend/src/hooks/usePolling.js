@@ -1,12 +1,3 @@
-/**
- * @module hooks/usePolling
- * @description Custom hook that invokes a callback immediately and then on a
- * fixed interval. Pauses polling when the browser tab is hidden (via the
- * Page Visibility API) to reduce unnecessary network traffic.
- *
- * @param {Function} callback - Async or sync function to call on each tick
- * @param {number}   [intervalMs=30000] - Polling interval in milliseconds
- */
 import { useEffect, useRef, useCallback } from 'react';
 
 export default function usePolling(callback, intervalMs = 30000) {

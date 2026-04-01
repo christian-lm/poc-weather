@@ -1,12 +1,3 @@
-/**
- * @module pages/Registration
- * @description Sensor management page with two centered cards:
- * 1) Register New Sensor — name + location inputs with a clean centered layout.
- * 2) Send Metrics — select an existing sensor and push metric readings.
- *
- * The page auto-refreshes the sensor list after each successful operation
- * so the dropdown immediately reflects newly created sensors.
- */
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { PlusCircle, Send, MapPin, Radio, Search, X } from 'lucide-react';
 import { fetchSensors, createSensor, ingestMetrics } from '../services/api';
@@ -87,6 +78,13 @@ export default function Registration() {
     }
   };
 
+  const METRIC_BOUNDS = {
+    temperature: [-90, 60],
+    humidity: [0, 100],
+    wind_speed: [0, 500],
+    pressure: [300, 1100],
+  };
+
   const handleIngest = async (e) => {
     e.preventDefault();
     if (!sensorId) { showToast('Select a sensor', 'error'); return; }
@@ -96,6 +94,13 @@ export default function Registration() {
     if (windSpeed) metrics.wind_speed = parseFloat(windSpeed);
     if (pressure) metrics.pressure = parseFloat(pressure);
     if (!Object.keys(metrics).length) { showToast('Fill at least one metric', 'error'); return; }
+    for (const [key, value] of Object.entries(metrics)) {
+      const [min, max] = METRIC_BOUNDS[key] || [-Infinity, Infinity];
+      if (value < min || value > max) {
+        showToast(`${key.replace(/_/g, ' ')} must be between ${min} and ${max}`, 'error');
+        return;
+      }
+    }
     setIngesting(true);
     try {
       const res = await ingestMetrics({ sensorId: parseInt(sensorId), metrics });
@@ -229,19 +234,23 @@ export default function Registration() {
           <div className="reg-metric-grid">
             <div className="reg-field">
               <label className="reg-label">Temperature (°C)</label>
-              <input type="number" step="0.1" value={temperature} onChange={e => setTemperature(e.target.value)} style={{ width: '100%' }} />
+              <input type="number" step="0.1" min="-90" max="60" value={temperature} onChange={e => setTemperature(e.target.value)} style={{ width: '100%' }} />
+              <span className="reg-range">-90 to 60 °C</span>
             </div>
             <div className="reg-field">
               <label className="reg-label">Humidity (%)</label>
-              <input type="number" step="0.1" value={humidity} onChange={e => setHumidity(e.target.value)} style={{ width: '100%' }} />
+              <input type="number" step="0.1" min="0" max="100" value={humidity} onChange={e => setHumidity(e.target.value)} style={{ width: '100%' }} />
+              <span className="reg-range">0 to 100 %</span>
             </div>
             <div className="reg-field">
               <label className="reg-label">Wind Speed (km/h)</label>
-              <input type="number" step="0.1" value={windSpeed} onChange={e => setWindSpeed(e.target.value)} style={{ width: '100%' }} />
+              <input type="number" step="0.1" min="0" max="500" value={windSpeed} onChange={e => setWindSpeed(e.target.value)} style={{ width: '100%' }} />
+              <span className="reg-range">0 to 500 km/h</span>
             </div>
             <div className="reg-field">
               <label className="reg-label">Pressure (hPa)</label>
-              <input type="number" step="0.1" value={pressure} onChange={e => setPressure(e.target.value)} style={{ width: '100%' }} />
+              <input type="number" step="0.1" min="300" max="1100" value={pressure} onChange={e => setPressure(e.target.value)} style={{ width: '100%' }} />
+              <span className="reg-range">300 to 1100 hPa</span>
             </div>
           </div>
 
@@ -369,6 +378,12 @@ export default function Registration() {
         .reg-cancel:hover {
           border-color: var(--text-muted);
           color: var(--text);
+        }
+        .reg-range {
+          font-size: 0.65rem;
+          color: var(--text-light);
+          margin-top: 2px;
+          display: block;
         }
         .reg-metric-grid {
           display: grid;

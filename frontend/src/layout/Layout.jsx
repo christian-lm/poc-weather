@@ -1,8 +1,3 @@
-/**
- * @module layout/Layout
- * @description Shell layout wrapping the sidebar, top bar, and a routed content area.
- * The react-router-dom {@link Outlet} renders the active page component.
- */
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';

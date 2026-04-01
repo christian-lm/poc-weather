@@ -1,9 +1,3 @@
-/**
- * @module pages/Sensors
- * @description Sensor registry page listing all registered weather stations
- * in a paginated table with name, location, registration date, and operational status.
- * Supports server-side search, inline editing, and deletion with confirmation.
- */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Radio, MapPin, Clock, Search, Pencil, Trash2, Check, X, AlertTriangle, PlusCircle } from 'lucide-react';
@@ -197,7 +191,7 @@ export default function Sensors() {
                           </div>
                           <div className="sensor-name-block">
                             <div className="sensor-name" title={s.name}>{s.name}</div>
-                            <div className="sensor-sub">ID: {s.id}</div>
+                            <div className="sensor-sub">{s.location || 'No location'}</div>
                           </div>
                         </div>
                       )}
