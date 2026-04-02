@@ -19,14 +19,10 @@ describe('StationCard', () => {
     expect(screen.getByText('14.2')).toBeInTheDocument();
   });
 
-  it('renders location name', () => {
+  it('renders location as primary label and sensor name as secondary', () => {
     render(<StationCard sensor={mockSensor} />);
     expect(screen.getByText('Dublin, Ireland')).toBeInTheDocument();
-  });
-
-  it('renders database sensor id', () => {
-    render(<StationCard sensor={mockSensor} />);
-    expect(screen.getByText('ID: 7')).toBeInTheDocument();
+    expect(screen.getByText('Dublin Central')).toBeInTheDocument();
   });
 
   it('renders humidity value', () => {
@@ -44,5 +40,26 @@ describe('StationCard', () => {
     render(<StationCard sensor={emptyMetrics} />);
     expect(screen.getByText('--')).toBeInTheDocument();
     expect(screen.getByText('-- RH')).toBeInTheDocument();
+  });
+
+  it('shows dashes and Suspect badge for out-of-range temperature', () => {
+    const extreme = { ...mockSensor, latestMetrics: { temperature: 1500, humidity: 50 } };
+    render(<StationCard sensor={extreme} />);
+    expect(screen.getByText('--')).toBeInTheDocument();
+    expect(screen.getByText('Suspect')).toBeInTheDocument();
+  });
+
+  it('shows dashes and Suspect badge for extreme negative temperature', () => {
+    const extreme = { ...mockSensor, latestMetrics: { temperature: -1500, humidity: 50 } };
+    render(<StationCard sensor={extreme} />);
+    expect(screen.getByText('--')).toBeInTheDocument();
+    expect(screen.getByText('Suspect')).toBeInTheDocument();
+  });
+
+  it('shows dashes for out-of-range humidity', () => {
+    const extreme = { ...mockSensor, latestMetrics: { temperature: 20, humidity: 150 } };
+    render(<StationCard sensor={extreme} />);
+    expect(screen.getByText('-- RH')).toBeInTheDocument();
+    expect(screen.getByText('Suspect')).toBeInTheDocument();
   });
 });
