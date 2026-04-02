@@ -316,12 +316,26 @@ public class MetricsService {
 
     /**
      * Resolves sensor IDs: returns all sensor IDs if input is empty/null.
+     * When specific IDs are provided, validates they exist in the database.
      */
     private List<Long> resolveSensorIds(List<Long> sensorIds) {
         if (sensorIds == null || sensorIds.isEmpty()) {
             return sensorRepository.findAll().stream().map(Sensor::getId).toList();
         }
-        return sensorIds;
+
+        List<Long> existingIds = sensorRepository.findAllById(sensorIds).stream()
+                .map(Sensor::getId)
+                .toList();
+
+        List<Long> unknownIds = sensorIds.stream()
+                .filter(id -> !existingIds.contains(id))
+                .toList();
+
+        if (!unknownIds.isEmpty()) {
+            log.warn("Query referenced non-existent sensor IDs: {}", unknownIds);
+        }
+
+        return existingIds;
     }
 
     private void validateSensorExists(Long sensorId) {
