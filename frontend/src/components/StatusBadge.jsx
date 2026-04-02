@@ -7,6 +7,7 @@ const STATUS_CONFIG = {
   timeout: { label: 'Timeout', variant: 'warning' },
   maintenance: { label: 'Maintenance', variant: 'warning' },
   error: { label: 'Error', variant: 'error' },
+  suspect: { label: 'Suspect', variant: 'warning' },
   up: { label: 'UP', variant: 'success' },
   down: { label: 'DOWN', variant: 'error' },
 };

@@ -1,6 +1,6 @@
 import { ExternalLink } from 'lucide-react';
 import StatusBadge from './StatusBadge';
-import { METRIC_UNITS, METRIC_LABELS } from '../constants/metrics';
+import { METRIC_UNITS, METRIC_LABELS, isPlausibleValue } from '../constants/metrics';
 
 function formatTimestamp(ts) {
   if (!ts) return '--';
@@ -49,7 +49,11 @@ export default function RealtimeStream({ entries = [] }) {
           )}
           {entries.map((entry, i) => {
             const unit = METRIC_UNITS[entry.metricType] || '';
-            const status = entry.value != null ? 'valid' : 'timeout';
+            const plausible = isPlausibleValue(entry.metricType, entry.value);
+            const status = entry.value == null ? 'timeout' : plausible ? 'valid' : 'suspect';
+            const displayValue = entry.value != null && plausible
+              ? `${entry.value.toFixed(2)} ${unit}`
+              : entry.value != null ? `-- ${unit}` : '--';
             return (
               <tr key={i}>
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--text-light)' }}>
@@ -69,7 +73,7 @@ export default function RealtimeStream({ entries = [] }) {
                   {METRIC_LABELS[entry.metricType] || entry.metricType}
                 </td>
                 <td style={{ fontWeight: 600 }}>
-                  {entry.value != null ? `${entry.value.toFixed(2)} ${unit}` : '--'}
+                  {displayValue}
                 </td>
                 <td>
                   <StatusBadge status={status} />
