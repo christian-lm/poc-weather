@@ -11,4 +11,6 @@ public interface RecentMetricResult {
     String getMetricType();
 
     Double getValue();
+
+    String getQuality();
 }
