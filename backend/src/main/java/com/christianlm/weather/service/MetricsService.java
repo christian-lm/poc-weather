@@ -9,6 +9,7 @@ import com.christianlm.weather.model.SensorMetric;
 import com.christianlm.weather.repository.MetricAggregationResult;
 import com.christianlm.weather.repository.SensorMetricRepository;
 import com.christianlm.weather.repository.SensorRepository;
+import com.christianlm.weather.validation.MetricBounds;
 import com.christianlm.weather.validation.MetricType;
 import com.christianlm.weather.validation.StatisticType;
 import jakarta.persistence.EntityNotFoundException;
@@ -64,12 +65,18 @@ public class MetricsService {
         Instant timestamp = request.getTimestamp() != null ? request.getTimestamp() : Instant.now();
 
         List<SensorMetric> entities = request.getMetrics().entrySet().stream()
-                .map(entry -> SensorMetric.builder()
-                        .time(timestamp)
-                        .sensorId(request.getSensorId())
-                        .metricType(entry.getKey().toLowerCase())
-                        .value(entry.getValue())
-                        .build())
+                .map(entry -> {
+                    String key = entry.getKey().toLowerCase();
+                    double val = entry.getValue();
+                    String quality = MetricBounds.isInRange(key, val) ? "valid" : "suspect";
+                    return SensorMetric.builder()
+                            .time(timestamp)
+                            .sensorId(request.getSensorId())
+                            .metricType(key)
+                            .value(val)
+                            .quality(quality)
+                            .build();
+                })
                 .toList();
 
         metricRepository.saveAll(entities);
@@ -242,6 +249,7 @@ public class MetricsService {
                             .location(sensor != null ? sensor.getLocation() : null)
                             .metricType(r.getMetricType())
                             .value(r.getValue())
+                            .quality(r.getQuality() != null ? r.getQuality() : "valid")
                             .build();
                 })
                 .toList();
