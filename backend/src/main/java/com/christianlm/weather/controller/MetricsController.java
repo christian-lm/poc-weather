@@ -8,6 +8,7 @@ import com.christianlm.weather.dto.PageResponse;
 import com.christianlm.weather.dto.SensorLatestResponse;
 import com.christianlm.weather.dto.ThroughputEntry;
 import com.christianlm.weather.service.MetricsService;
+import com.christianlm.weather.validation.MetricBounds;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,10 @@ public class MetricsController {
     @PostMapping("/batch")
     public ResponseEntity<List<MetricIngestResponse>> ingestBatch(
             @Valid @RequestBody List<MetricIngestRequest> requests) {
+        if (requests.size() > MetricBounds.MAX_BATCH_SIZE) {
+            throw new IllegalArgumentException(
+                    "Batch size " + requests.size() + " exceeds maximum of " + MetricBounds.MAX_BATCH_SIZE);
+        }
         List<MetricIngestResponse> responses = metricsService.ingestBatch(requests);
         return ResponseEntity.status(HttpStatus.CREATED).body(responses);
     }

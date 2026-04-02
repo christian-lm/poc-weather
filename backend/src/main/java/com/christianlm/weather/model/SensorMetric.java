@@ -35,4 +35,9 @@ public class SensorMetric {
 
     @Column(nullable = false)
     private Double value;
+
+    /** Data-quality flag: "valid" or "suspect" (out-of-range but persisted). */
+    @Column(nullable = false, length = 10)
+    @Builder.Default
+    private String quality = "valid";
 }

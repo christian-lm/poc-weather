@@ -1,8 +1,9 @@
-import { Cloud, CloudRain, Sun, CloudSun, Snowflake } from 'lucide-react';
+import { Cloud, CloudRain, Sun, CloudSun, Snowflake, AlertTriangle } from 'lucide-react';
 import StatusBadge from './StatusBadge';
+import { isPlausibleValue } from '../constants/metrics';
 
 function getWeatherIcon(temp) {
-  if (temp == null) return Cloud;
+  if (temp == null || !isPlausibleValue('temperature', temp)) return Cloud;
   if (temp > 20) return Sun;
   if (temp > 15) return CloudSun;
   if (temp > 5) return Cloud;
@@ -12,15 +13,13 @@ function getWeatherIcon(temp) {
 
 function formatTemp(value) {
   if (value == null) return '--';
-  if (value > 999) return '>999';
-  if (value < -999) return '<-999';
+  if (!isPlausibleValue('temperature', value)) return '--';
   return value.toFixed(1);
 }
 
 function formatHumidity(value) {
   if (value == null) return '-- RH';
-  if (value > 100) return '>100% RH';
-  if (value < 0) return '<0% RH';
+  if (!isPlausibleValue('humidity', value)) return '-- RH';
   return `${value.toFixed(0)}% RH`;
 }
 
@@ -28,10 +27,13 @@ export default function StationCard({ sensor }) {
   const { sensorName, location, latestMetrics = {}, status = 'online' } = sensor;
   const temp = latestMetrics.temperature;
   const humidity = latestMetrics.humidity;
+  const hasDataError =
+    (temp != null && !isPlausibleValue('temperature', temp)) ||
+    (humidity != null && !isPlausibleValue('humidity', humidity));
   const WeatherIcon = getWeatherIcon(temp);
 
   return (
-    <div className="station-card">
+    <div className={`station-card${hasDataError ? ' station-card--warn' : ''}`}>
       <div className="station-header">
         <div className="station-header-text">
           <div className="station-name" title={location || sensorName}>{location || sensorName}</div>
@@ -39,7 +41,9 @@ export default function StationCard({ sensor }) {
             <div className="station-id" title={sensorName}>{sensorName}</div>
           )}
         </div>
-        <WeatherIcon size={28} className="station-weather-icon" />
+        {hasDataError
+          ? <AlertTriangle size={28} className="station-warn-icon" title="Sensor data out of plausible range" />
+          : <WeatherIcon size={28} className="station-weather-icon" />}
       </div>
 
       <div className="station-temp">
@@ -53,7 +57,7 @@ export default function StationCard({ sensor }) {
         <span className="station-humidity">
           {formatHumidity(humidity)}
         </span>
-        <StatusBadge status={status} />
+        <StatusBadge status={hasDataError ? 'suspect' : status} />
       </div>
 
       <style>{`
@@ -102,6 +106,13 @@ export default function StationCard({ sensor }) {
         .station-weather-icon {
           color: var(--primary-muted);
           flex-shrink: 0;
+        }
+        .station-warn-icon {
+          color: var(--warning, #e6a817);
+          flex-shrink: 0;
+        }
+        .station-card--warn {
+          border-color: var(--warning, #e6a817);
         }
         .station-temp {
           margin-bottom: 0.75rem;

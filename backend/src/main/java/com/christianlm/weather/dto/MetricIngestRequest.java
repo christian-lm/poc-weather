@@ -1,5 +1,6 @@
 package com.christianlm.weather.dto;
 
+import com.christianlm.weather.validation.ValidMetricValues;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
@@ -25,5 +26,6 @@ public class MetricIngestRequest {
 
     @NotNull(message = "metrics map is required")
     @Size(min = 1, message = "At least one metric is required")
+    @ValidMetricValues
     private Map<String, Double> metrics;
 }
