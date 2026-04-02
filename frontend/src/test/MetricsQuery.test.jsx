@@ -89,10 +89,11 @@ describe('MetricsQuery', () => {
     expect(within(table).getByText('S1')).toBeInTheDocument();
   });
 
-  it('shows empty results message', async () => {
+  it('shows empty results message when query returns no data', async () => {
     vi.mocked(queryMetrics).mockResolvedValue({ results: [] });
     renderPage();
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /S1/i })).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('checkbox', { name: /S1/i }));
     fireEvent.click(screen.getByRole('button', { name: /Run Query/i }));
     await waitFor(() => {
       expect(
@@ -101,18 +102,12 @@ describe('MetricsQuery', () => {
     });
   });
 
-  it('allows querying all sensors when none selected', async () => {
-    vi.mocked(queryMetrics).mockResolvedValue({ results: [] });
+  it('requires at least one sensor to submit', async () => {
     renderPage();
     await waitFor(() => expect(screen.getByRole('checkbox', { name: /S1/i })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /Run Query/i }));
     await waitFor(() => {
-      expect(queryMetrics).toHaveBeenCalledWith(
-        expect.objectContaining({
-          sensorIds: [],
-          metrics: expect.arrayContaining(['temperature']),
-        }),
-      );
+      expect(queryMetrics).not.toHaveBeenCalled();
     });
   });
 });
