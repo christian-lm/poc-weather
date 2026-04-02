@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { PlusCircle, Send, MapPin, Radio, Search, X } from 'lucide-react';
 import { fetchSensors, createSensor, ingestMetrics } from '../services/api';
+import { METRIC_BOUNDS } from '../constants/metrics';
 
 export default function Registration() {
   const [sensors, setSensors] = useState([]);
@@ -78,13 +79,6 @@ export default function Registration() {
     }
   };
 
-  const METRIC_BOUNDS = {
-    temperature: [-90, 60],
-    humidity: [0, 100],
-    wind_speed: [0, 500],
-    pressure: [300, 1100],
-  };
-
   const handleIngest = async (e) => {
     e.preventDefault();
     if (!sensorId) { showToast('Select a sensor', 'error'); return; }
@@ -95,8 +89,10 @@ export default function Registration() {
     if (pressure) metrics.pressure = parseFloat(pressure);
     if (!Object.keys(metrics).length) { showToast('Fill at least one metric', 'error'); return; }
     for (const [key, value] of Object.entries(metrics)) {
-      const [min, max] = METRIC_BOUNDS[key] || [-Infinity, Infinity];
-      if (value < min || value > max) {
+      const bounds = METRIC_BOUNDS[key];
+      const min = bounds?.min ?? -Infinity;
+      const max = bounds?.max ?? Infinity;
+      if (!Number.isFinite(value) || value < min || value > max) {
         showToast(`${key.replace(/_/g, ' ')} must be between ${min} and ${max}`, 'error');
         return;
       }

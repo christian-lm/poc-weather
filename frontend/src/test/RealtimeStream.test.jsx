@@ -40,4 +40,43 @@ describe('RealtimeStream', () => {
     expect(screen.getByText(/22\.50/)).toBeInTheDocument();
     expect(screen.getByText(/°C/)).toBeInTheDocument();
   });
+
+  it('shows null value as dashes', () => {
+    const entries = [
+      {
+        sensorName: 'S1',
+        metricType: 'temperature',
+        value: null,
+        timestamp: '2026-01-01T12:00:00.000Z',
+      },
+    ];
+    renderWithRouter(<RealtimeStream entries={entries} />);
+    expect(screen.getByText('--')).toBeInTheDocument();
+  });
+
+  it('displays Valid status for normal readings', () => {
+    const entries = [
+      {
+        sensorName: 'S1',
+        metricType: 'temperature',
+        value: 20,
+        timestamp: '2026-01-01T12:00:00.000Z',
+      },
+    ];
+    renderWithRouter(<RealtimeStream entries={entries} />);
+    expect(screen.getByText('Valid')).toBeInTheDocument();
+  });
+
+  it('displays Timeout status for null readings', () => {
+    const entries = [
+      {
+        sensorName: 'S1',
+        metricType: 'temperature',
+        value: null,
+        timestamp: '2026-01-01T12:00:00.000Z',
+      },
+    ];
+    renderWithRouter(<RealtimeStream entries={entries} />);
+    expect(screen.getByText('Timeout')).toBeInTheDocument();
+  });
 });

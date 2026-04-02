@@ -117,7 +117,8 @@ public interface SensorMetricRepository extends JpaRepository<SensorMetric, Sens
     List<MetricAggregationResult> findLatestBySensorIds(@Param("sensorIds") List<Long> sensorIds);
 
     @Query(value = """
-        SELECT sm.time AS time, sm.sensor_id AS sensorId, sm.metric_type AS metricType, sm.value AS value
+        SELECT sm.time AS time, sm.sensor_id AS sensorId, sm.metric_type AS metricType,
+               sm.value AS value, sm.quality AS quality
         FROM sensor_metrics sm
         ORDER BY sm.time DESC
         LIMIT :limit
