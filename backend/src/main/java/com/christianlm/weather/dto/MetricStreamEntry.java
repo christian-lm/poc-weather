@@ -19,4 +19,6 @@ public class MetricStreamEntry {
     private String location;
     private String metricType;
     private Double value;
+    @Builder.Default
+    private String quality = "valid";
 }
