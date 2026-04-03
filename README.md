@@ -14,7 +14,7 @@ docker-compose up --build
 
 Open **http://localhost:3000** — that's it.
 
-The database is pre-populated with 30 days of hourly data for 5 sensors across Ireland (Dublin, Cork, Galway, Limerick, Waterford). You can start querying immediately.
+The database is pre-populated via Flyway: **V3** seeds **5 sensors** in Ireland (Dublin, Cork, Galway, Limerick, Waterford) with **30 days** of hourly metrics. **V4** adds a stress-test dataset with **~100 additional sensors** worldwide (tropical, arctic, desert, coastal, mountain, edge cases) and **~450K** metric rows so pagination, search, and aggregations have realistic volume. You can start querying immediately.
 
 > First build takes ~5 minutes (Maven + npm dependency download). Subsequent builds are near-instant thanks to Docker layer caching.
 
@@ -282,7 +282,7 @@ DB_PORT=5433 API_PORT=9090 UI_PORT=4000 docker-compose up --build
 2. **EAV model for metrics** — flexible schema, new metric types without ALTER TABLE
 3. **Flyway over JPA auto-DDL** — explicit SQL control needed for `create_hypertable()`
 4. **GET for queries** — idempotent, cacheable, fits REST semantics
-5. **Seed data in Flyway migration** — zero dependencies for the evaluator, data ready on first boot
+5. **Seed data in Flyway migration** — Irish baseline (V3) plus global stress seed (V4); zero extra dependencies, data ready on first boot
 6. **Structured JSON logging** — production-ready, includes traceId for request correlation
 7. **Actuator for ops, not UI** — health/metrics endpoints are infrastructure concerns, consumed by monitoring tools (Prometheus/Grafana), not exposed to end users
 
