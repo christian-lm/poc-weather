@@ -14,7 +14,7 @@ docker-compose up --build
 
 Open **http://localhost:3000** — that's it.
 
-The database is pre-populated with 30 days of hourly data for 5 sensors across Ireland (Dublin, Cork, Galway, Limerick, Waterford). You can start querying immediately.
+The database is pre-populated via Flyway: **V3** seeds **5 sensors** in Ireland (Dublin, Cork, Galway, Limerick, Waterford) with **30 days** of hourly metrics. **V4** adds a stress-test dataset with **~100 additional sensors** worldwide (tropical, arctic, desert, coastal, mountain, edge cases) and **~450K** metric rows so pagination, search, and aggregations have realistic volume. You can start querying immediately.
 
 > First build takes ~5 minutes (Maven + npm dependency download). Subsequent builds are near-instant thanks to Docker layer caching.
 
@@ -38,7 +38,7 @@ The database is pre-populated with 30 days of hourly data for 5 sensors across I
 | Backend | Docker container | ECS Fargate |
 | Database | TimescaleDB container | RDS PostgreSQL + TimescaleDB |
 | Load Balancer | — | Application Load Balancer |
-| Observability | Actuator + JSON logs | CloudWatch Logs + Metrics |
+| Observability | Actuator + Micrometer Prometheus (`/actuator/prometheus`) + JSON logs | CloudWatch Logs + Metrics (+ optional AMP/Prometheus) |
 | CI/CD | `docker-compose up` | CodePipeline |
 
 ---
@@ -47,11 +47,11 @@ The database is pre-populated with 30 days of hourly data for 5 sensors across I
 
 | Layer | Technology | Justification |
 |-------|-----------|---------------|
-| Backend | Java 17, Spring Boot 3.2 | Required by spec. Mature ecosystem for REST APIs |
+| Backend | Java 17, Spring Boot 3.2.5 | Required by spec. Mature ecosystem for REST APIs |
 | Frontend | React 18, Vite 5 | Fast dev server, minimal config, wide adoption |
 | Database | TimescaleDB (PostgreSQL 16) | Purpose-built for time-series: hypertables, `time_bucket()`, automatic partitioning |
 | Migrations | Flyway | Version-controlled SQL, supports TimescaleDB extensions |
-| Observability | Micrometer, Actuator, Logstash JSON encoder | Production-ready metrics + structured logging |
+| Observability | Micrometer + **Prometheus registry** (scrape at `/actuator/prometheus`), Actuator (`health`, `metrics`, `info`), Logstash JSON encoder | JVM/HTTP metrics in Prometheus format + structured logs with `traceId` |
 | Testing | JUnit 5, Mockito, MockMvc, Vitest, Testing Library | Standard testing stacks for Spring Boot and React |
 
 ### Why TimescaleDB?
@@ -115,7 +115,7 @@ Allowed metric types: `temperature`, `humidity`, `wind_speed`, `pressure`, `prec
 |--------|----------|-------------|
 | `GET` | `/metrics/query` | Query aggregated metrics |
 | `GET` | `/metrics/latest-all` | Latest readings per sensor (paginated) |
-| `GET` | `/metrics/stream` | Recent raw readings (`limit` param) |
+| `GET` | `/metrics/stream` | Recent raw readings (`limit` param); each row includes `quality` (`valid` / `suspect`, set at ingestion) |
 | `GET` | `/metrics/throughput` | Hourly ingestion counts (`hours` param) |
 
 **Query Parameters (`/metrics/query`):**
@@ -156,15 +156,18 @@ GET /api/v1/metrics/query?sensorIds=1&metrics=temperature,humidity&statistic=ave
 
 ### Observability (Ops Endpoints)
 
-These endpoints are available for infrastructure monitoring tools (Prometheus, Grafana, CloudWatch) and Docker health checks. They are not exposed through the frontend UI.
+The backend uses **Micrometer** with the **Prometheus** registry (`micrometer-registry-prometheus`), so metrics are exposed in Prometheus text format for scraping. There is **no Prometheus server** in `docker-compose`; configure a local or hosted Prometheus to scrape `http://localhost:<API_PORT>/actuator/prometheus` (same port as the REST API). Grafana or CloudWatch can consume those series downstream.
+
+These endpoints are for infrastructure monitoring and Docker health checks; they are not exposed through the frontend UI.
 
 | Endpoint | Description |
 |----------|-------------|
 | `/actuator/health` | Health check (DB connectivity) |
-| `/actuator/metrics` | JVM + HTTP metrics |
-| `/actuator/prometheus` | Prometheus scrape endpoint |
+| `/actuator/info` | Application info (when configured) |
+| `/actuator/metrics` | JVM + HTTP metrics (actuator view; Prometheus format is on `/prometheus`) |
+| `/actuator/prometheus` | **Prometheus** scrape endpoint (Micrometer Prometheus registry) |
 
-In production, these would be scraped by a Prometheus instance or CloudWatch agent rather than accessed directly by users.
+In production, a Prometheus-compatible scraper (self-managed Prometheus, Amazon Managed Service for Prometheus, or CloudWatch with a custom exporter) replaces direct browser access.
 
 ---
 
@@ -243,6 +246,7 @@ Test coverage includes:
 - **Service layer**: `MetricsServiceTest` (ingestion, batch, queries, aggregations, stream, throughput), `SensorServiceTest` (CRUD, pagination, search, validation)
 - **Controller layer**: `MetricsControllerTest` (all endpoints, HTTP status codes, request shapes), `SensorControllerTest` (CRUD endpoints, validation, pagination)
 - **Exception handling**: `GlobalExceptionHandlerTest` (validation errors, 400/404/500 responses)
+- **Integration**: `MetricsIntegrationTest` (API + DB via Testcontainers)
 
 ### Frontend
 
@@ -282,9 +286,9 @@ DB_PORT=5433 API_PORT=9090 UI_PORT=4000 docker-compose up --build
 2. **EAV model for metrics** — flexible schema, new metric types without ALTER TABLE
 3. **Flyway over JPA auto-DDL** — explicit SQL control needed for `create_hypertable()`
 4. **GET for queries** — idempotent, cacheable, fits REST semantics
-5. **Seed data in Flyway migration** — zero dependencies for the evaluator, data ready on first boot
+5. **Seed data in Flyway migration** — Irish baseline (V3) plus global stress seed (V4); zero extra dependencies, data ready on first boot
 6. **Structured JSON logging** — production-ready, includes traceId for request correlation
-7. **Actuator for ops, not UI** — health/metrics endpoints are infrastructure concerns, consumed by monitoring tools (Prometheus/Grafana), not exposed to end users
+7. **Actuator for ops, not UI** — health and metrics (including **Prometheus** exposition via Micrometer) are infrastructure concerns; not routed through the SPA
 
 ## Simplifications (PoC scope)
 
