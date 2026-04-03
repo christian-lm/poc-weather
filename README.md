@@ -115,7 +115,7 @@ Allowed metric types: `temperature`, `humidity`, `wind_speed`, `pressure`, `prec
 |--------|----------|-------------|
 | `GET` | `/metrics/query` | Query aggregated metrics |
 | `GET` | `/metrics/latest-all` | Latest readings per sensor (paginated) |
-| `GET` | `/metrics/stream` | Recent raw readings (`limit` param) |
+| `GET` | `/metrics/stream` | Recent raw readings (`limit` param); each row includes `quality` (`valid` / `suspect`, set at ingestion) |
 | `GET` | `/metrics/throughput` | Hourly ingestion counts (`hours` param) |
 
 **Query Parameters (`/metrics/query`):**
